@@ -20,6 +20,7 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS “AS IS” 
 #include <ctype.h>
 #include <stdarg.h>
 #include <stdint.h>
+#include <assert.h>
 
 #ifndef LCH_H
 #define LCH_H
@@ -114,9 +115,11 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS “AS IS” 
 #endif
 LCH_API const char *lch_textformat(const char *fmt, ...);
 
+typedef struct lch_crash_details lch_crash_details;
 
+typedef void(*lch_crash_callback)(const lch_crash_details *details, void *context);
 
-typedef struct {
+struct lch_crash_details {
     const char *description;
     const char *detailed_description;
     const char *title;
@@ -126,7 +129,14 @@ typedef struct {
     const short exit_code;
     FILE *const file_write_to;
     bool do_abrt;
-} lch_crash_details;
+
+    lch_crash_callback on_crash;
+    void *callback_context;
+    const char *callback_name;
+
+};
+
+#define ON_CRASH(func) on_crash = (func), .callback_name = #func
 
 #ifndef LCH_CRASH_FD
     #define LCH_CRASH_FD stderr
@@ -192,6 +202,16 @@ LCH_API bool lch_sv_equals(lch_string_view a, lch_string_view b);
 #define lch_sv_arg(sv) (int)(sv).count, (sv).data
 
 
+typedef struct {
+    bool all_caps;
+    bool capitalized;
+} lch__bool_opts;
+
+LCH_API const char *lch_bool_to_str_ex_opt(bool value, lch__bool_opts opt);
+
+#define lch_bool_to_str_ex(value, ...) lch_bool_to_str_ex_opt(value, (lch__bool_opts){__VA_ARGS__})
+
+
 
 #ifdef LCH_DISABLE_PREFIX
     #define textformat lch_textformat
@@ -210,6 +230,8 @@ LCH_API bool lch_sv_equals(lch_string_view a, lch_string_view b);
     #define sv_equals lch_sv_equals
     #define sv_fmt lch_sv_fmt
     #define sv_arg lch_sv_arg
+
+    #define bool_to_str_ex lch_bool_to_str_ex
 
 #endif
 
@@ -233,7 +255,7 @@ LCH_API const char *lch_textformat(const char *fmt, ...) {
 
     if(required_sz >= LCH_TB_LEN) {
         fprintf(stderr, "[LCH] String formating fail: attempting to format string larger than LCH_TB_LEN\n");
-        return nullptr;
+        return NULL;
     }
 
     index += 1;
@@ -245,7 +267,7 @@ LCH_API const char *lch_textformat(const char *fmt, ...) {
 
 [[noreturn]] LCH_API void lch_crash_opt(lch_crash_details details) {
 
-    FILE *write_handle = {};
+    FILE *write_handle = NULL;
 
     if(details.file_write_to) {
         write_handle = details.file_write_to;
@@ -266,6 +288,20 @@ LCH_API const char *lch_textformat(const char *fmt, ...) {
     }
 
     fflush(write_handle);
+
+    if(details.on_crash != NULL) {
+        fprintf(write_handle, "\n===================\n");
+        if(details.callback_name) {
+            fprintf(write_handle, "[LCH] on_crash: %s()\n", details.callback_name);
+        }
+        else {
+            fprintf(write_handle, "[LCH] on_crash()\n");
+        }
+
+        details.on_crash(&details, details.callback_context);
+
+        fprintf(write_handle, "\n===================\n");
+    }
 
 
     if(details.do_abrt) abort();
@@ -379,4 +415,16 @@ LCH_API bool lch_sv_equals(lch_string_view a, lch_string_view b) {
     return false;
 }
 
+
+
+LCH_API const char *lch_bool_to_str_ex_opt(bool value, lch__bool_opts opt) {
+
+    if(opt.all_caps) return value ? "TRUE" : "FALSE";
+
+    if(opt.capitalized) return value ? "True" : "False";
+
+    return value ? "true" : "false";
+}
+
 #endif /* LCH_IMPLEMENTATION */
+
