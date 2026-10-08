@@ -117,7 +117,7 @@ LCH_API const char *lch_textformat(const char *fmt, ...);
 
 typedef struct lch_crash_details lch_crash_details;
 
-typedef void(*lch_crash_callback)(const lch_crash_details *details, void *context);
+typedef void(*lch_crash_callback)(void *context);
 
 struct lch_crash_details {
     const char *description;
@@ -136,7 +136,7 @@ struct lch_crash_details {
 
 };
 
-#define ON_CRASH(func) on_crash = (func), .callback_name = #func
+#define ON_CRASH(func) .on_crash = (func), .callback_name = #func
 
 #ifndef LCH_CRASH_FD
     #define LCH_CRASH_FD stderr
@@ -144,11 +144,14 @@ struct lch_crash_details {
 
 [[noreturn]] LCH_API void lch_crash_opt(lch_crash_details details);
 
-#define lch_crash(...) lch_crash_opt((lch_crash_details){.file_where = __FILE__,\
+#define lch_crash(...) lch_crash_opt((lch_crash_details){__VA_ARGS__,\
+        .file_where = __FILE__,\
         .line_where = __LINE__,\
-        .function_where = __func__,\
-        __VA_ARGS__})
+        .function_where = __func__, })
 
+#define lch_quick_crash() lch_crash(.title = "Program has crashed", \
+        .description = "No additional information has been provided",\
+        .exit_code = 1)
 
 
 typedef struct {
@@ -217,6 +220,7 @@ LCH_API const char *lch_bool_to_str_ex_opt(bool value, lch__bool_opts opt);
     #define textformat lch_textformat
 
     #define crash lch_crash
+    #define quick_crash lch_quick_crash
     #define todo lch_todo
 
     #define sv lch_sv
@@ -278,9 +282,9 @@ LCH_API const char *lch_textformat(const char *fmt, ...) {
 
     fprintf(write_handle, "\n\n");
 
-    if(details.title) fprintf(write_handle, "%s\n", details.title);
-    if(details.description) fprintf(write_handle, "%s\n", details.description);
-    if(details.detailed_description) fprintf(write_handle, "%s\n", details.detailed_description);
+    if(details.title)                   fprintf(write_handle, "%s\n", details.title);
+    if(details.description)             fprintf(write_handle, "%s\n", details.description);
+    if(details.detailed_description)    fprintf(write_handle, "%s\n", details.detailed_description);
 
     if(details.file_where && details.function_where && details.line_where) {
         fprintf(write_handle, "At: %s:%zu, in function %s()\n",
@@ -288,6 +292,13 @@ LCH_API const char *lch_textformat(const char *fmt, ...) {
     }
 
     fflush(write_handle);
+
+    if(details.do_abrt) {
+
+        if(details.on_crash != NULL) fprintf(write_handle, "[LCH] .do_abrt: Ignoring on_crash\n");
+
+        abort();
+    }
 
     if(details.on_crash != NULL) {
         fprintf(write_handle, "\n===================\n");
@@ -298,13 +309,11 @@ LCH_API const char *lch_textformat(const char *fmt, ...) {
             fprintf(write_handle, "[LCH] on_crash()\n");
         }
 
-        details.on_crash(&details, details.callback_context);
+        details.on_crash(details.callback_context);
 
         fprintf(write_handle, "\n===================\n");
     }
 
-
-    if(details.do_abrt) abort();
 
     exit(details.exit_code);
 }
