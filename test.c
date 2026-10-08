@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <assert.h>
 
 #define LCH_DISABLE_PREFIX
 #define LCH_ENABLE_DEFER
@@ -7,10 +8,19 @@
 #define LCH_IMPLEMENTATION
 #include "lch.h"
 
-void my_on_crash_function(const lch_crash_details *details, void *context) {
-    assert(details != NULL);
-    i32 *value = (i32 *)context;
-    printf("my_on_crash_function: context = %d\n", *value);
+typedef struct {
+    i32 some_integer_context;
+    f32 some_float_context;
+    const char *some_cstr_context;
+} my_on_crash_context;
+
+void my_on_crash_function(void *context) {
+    assert(context != NULL);
+    my_on_crash_context *local_ctx = context;
+    printf("my_on_crash_function: context = {%d, %f, %s}\n",
+            local_ctx->some_integer_context,
+            local_ctx->some_float_context,
+            local_ctx->some_cstr_context);
     return;
 }
 
@@ -85,17 +95,26 @@ int main(void) {
         printf("|"sv_fmt"| != |"sv_fmt"|\n", sv_arg(string), sv_arg(comparision_string));
     }
 
+    my_on_crash_context my_context = {
+        .some_integer_context = 32767,
+        .some_float_context = 1234.67f,
+        .some_cstr_context = __func__
+    };
 
-    i32 my_context = 32767;
-
-
+#if 1
 
     crash(.title = "crash",
             .description = "this crashed because yes",
-            .do_abrt = false,
-            .ON_CRASH(my_on_crash_function),
+            /* .do_abrt = true, */
+            ON_CRASH(my_on_crash_function),
             .callback_context = &my_context,
             .exit_code = 10);
+
+#endif
+
+#if 0
+    quick_crash();
+#endif
 
     return 0;
 }
