@@ -44,6 +44,9 @@ defer {
 
 That is not needed on the GCC approach, but C is not picky about empty statements.
 
+Macro and GNU extension based Defer implementation based on [cmhood/c-defer](https://github.com/cmhood/c-defer/blob/master/defer.h)
+
+
 
 ### LCH_CRASH()
 
@@ -88,12 +91,17 @@ lch_crash(
 ```
 
 There is also a `lch_quick_crash()` macro, that gives a pre-made crash message:
-```
+
 lch_quick_crash() parameters:
+```
 .title = "Program has crashed"
 .description = "No additional information has been provided"
 .exit_code = 1
 ```
+
+It also includes identification of where the crash occured:
+
+At: FILE_NAME:LINE_NUMBER, in function FUNCTION_NAME()
 
 ### LCH_COMPILER_INFO
 
@@ -116,6 +124,8 @@ Returns a string containing time of build
 Example:
 
 `Built at Oct 9 2026 at 08:38:50`
+
+###
 
 ### LCH_TYPEALIAS
 
