@@ -48,7 +48,7 @@ Macro and GNU extension based Defer implementation based on [cmhood/c-defer](htt
 
 
 
-### LCH_CRASH()
+### lch_crash
 
 Helper function to allow you to generate good/useful crash messages. 
 This is one of the most complex funtions argument wise, but its functionality its stupidly simple.
@@ -102,6 +102,29 @@ lch_quick_crash() parameters:
 It also includes identification of where the crash occured:
 
 At: FILE_NAME:LINE_NUMBER, in function FUNCTION_NAME()
+
+
+### lch_todo()
+
+Display a quick todo message, where the message was called, and exits the program with abort()
+
+Optionally, having `.dont_exit` set to true, just makes it return after printing the TODO information. Useful for testing unimplemented functions.
+
+
+Example:
+```c
+
+float my_unfinished_function(int a) {
+    lch_todo("Implement this function", .dont_exit = true);
+    /* we havent implemented this function yet, but we can use .dont_exit to simulate a valid return without implementing it yet */
+    return 1234.5678f;
+
+}
+```
+
+
+Adding `#define LCH_DISABLE_TODO` removes all todo messages / exits.
+
 
 ### LCH_COMPILER_INFO
 
