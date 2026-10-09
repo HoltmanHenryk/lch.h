@@ -44,18 +44,6 @@ defer {
 
 That is not needed on the GCC approach, but C is not picky about empty statements.
 
-### LCH_COMPILER_INFO
-
-A C-string containing the name and version of the compiler used to build the executable.
-Printed in the following format:
-
-`"COMPILERNAME [COMPILER_VERSION]"`
-
-List of supported compilers
-- GCC
-- Clang
-
-If the used compiler is not on the list, instead will return the string `"Unknown Compiler"`
 
 ### LCH_CRASH()
 
@@ -98,6 +86,27 @@ lch_crash(
     .callback_context = &my_context);
 
 ```
+
+There is also a `lch_quick_crash()` macro, that gives a pre-made crash message:
+```
+lch_quick_crash() parameters:
+.title = "Program has crashed"
+.description = "No additional information has been provided"
+.exit_code = 1
+```
+
+### LCH_COMPILER_INFO
+
+A C-string containing the name and version of the compiler used to build the executable.
+Printed in the following format:
+
+`"COMPILERNAME [COMPILER_VERSION]"`
+
+List of supported compilers
+- GCC
+- Clang
+
+If the used compiler is not on the list, instead will return the string `"Unknown Compiler"`
 
 
 ### LCH_BUILD_DATE
